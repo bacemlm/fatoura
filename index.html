@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Générateur Bon de Livraison</title>
+<style>
+@font-face {
+  font-family: 'ReceiptFont';
+  src: url('JMYZK-LZT.ttf') format('truetype');
+  font-weight: normal;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e8e8e8;font-family:Arial,sans-serif;font-size:13px;display:flex;flex-direction:column;align-items:center;padding:20px;gap:20px}
+h1{font-size:16px;color:#333}
+.form-container{background:#fff;border:1px solid #ccc;border-radius:6px;padding:16px;width:100%;max-width:700px}
+.form-container h2{font-size:12px;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid #eee;padding-bottom:5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11px;color:#777}
+.field input{border:1px solid #ccc;border-radius:3px;padding:5px 7px;font-size:12px;font-family:Arial}
+.field input:focus{outline:none;border-color:#888}
+.section-sep{border:none;border-top:1px solid #eee;margin:12px 0}
+.btn-add{background:#333;color:#fff;border:none;border-radius:3px;padding:7px 16px;font-size:12px;cursor:pointer;margin-top:6px}
+.btn-clear{background:#fff;color:#c00;border:1px solid #c00;border-radius:3px;padding:5px 12px;font-size:11px;cursor:pointer;margin-left:8px}
+.btn-print{background:#1a1a1a;color:#fff;border:none;border-radius:4px;padding:10px;font-size:13px;cursor:pointer;width:100%;margin-top:12px}
+.lines-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}
+.lines-table th{background:#f5f5f5;text-align:left;padding:4px 6px;border:1px solid #ddd;font-weight:600}
+.lines-table td{padding:3px 6px;border:1px solid #eee}
+.del{background:none;border:none;color:#c00;cursor:pointer;font-size:14px;font-weight:700}
+.totaux{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+.receipt-container{display:flex;flex-direction:column;align-items:center;width:100%;max-width:700px}
+.receipt-label{font-size:11px;color:#666;margin-bottom:6px;text-transform:uppercase}
+
+/* ===== CATALOGUE ===== */
+.cat-search{width:100%;border:1px solid #ccc;border-radius:3px;padding:6px 8px;font-size:12px;font-family:Arial;margin-bottom:6px}
+.cat-search:focus{outline:none;border-color:#888}
+.cat-list{max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:3px}
+.cat-item{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;cursor:pointer;border-bottom:0.5px solid #f5f5f5;font-size:11.5px}
+.cat-item:hover{background:#f0f7ff}
+.cat-item .cat-nm{flex:1;color:#222}
+.cat-item .cat-px{color:#555;margin:0 10px;white-space:nowrap}
+.cat-item .cat-btn{background:#333;color:#fff;border:none;border-radius:2px;padding:2px 8px;font-size:11px;cursor:pointer}
+.cat-item .cat-btn:hover{background:#555}
+.cat-qty{width:60px;border:1px solid #ccc;border-radius:3px;padding:3px 5px;font-size:12px;font-family:Arial;margin-right:4px}
+
+/* ===== RECEIPT ===== */
+#receipt{
+  background:#fff;
+  color:#000;
+  font-family:'ReceiptFont',monospace;
+  font-size:11px;
+  line-height:1.6;
+  width:420px;
+  padding:16px 16px 24px;
+  border:1px solid #bbb;
+  box-shadow:4px 4px 14px rgba(0,0,0,.22);
+}
+#receipt .hdr { text-align:left; font-size:11px; line-height:1.55; }
+#receipt .hdr-name { font-weight:100; font-size:11px; }
+#receipt .bl-title { text-align:center; font-size:20px; font-weight:700; margin:10px 0 8px; line-height:1.5; }
+#receipt .b { font-weight:700; }
+#receipt .dashed { border-top:1px dashed #000; margin:5px 0; }
+#receipt .solid  { border-top:1px solid #000;  margin:5px 0; }
+#receipt .solid2 { border-top:2px solid #eae8e8; margin:5px 0; width:55%; float:right;}
+#receipt table{ width:100%; border-collapse:collapse; font-size:10.5px; table-layout:fixed; margin:3px 0;}
+#receipt table th{ font-weight:100; padding:2px 1px; border-bottom:1px solid #f1f1f1;}
+#receipt table th.l, #receipt table td.l { text-align:left; }
+#receipt table td { padding:1px 1px; text-align:right; vertical-align:top; overflow:hidden; white-space:nowrap; }
+#receipt table td.l { white-space:normal; }
+#receipt table col:nth-child(1){width:24px}
+#receipt table col:nth-child(2){width:auto}
+#receipt table col:nth-child(3){width:26px}
+#receipt table col:nth-child(4){width:20px}
+#receipt table col:nth-child(5){width:44px}
+#receipt table col:nth-child(6){width:46px}
+#receipt .tot-wrap { font-size:10.5px; margin-top:4px; }
+#receipt .tot-table { width:100%; border-collapse:collapse; font-size:10.5px; }
+#receipt .tot-table td { padding:1px 3px; }
+#receipt .tot-table td:nth-child(1) { text-align:left; width:40%; }
+#receipt .tot-table td:nth-child(2) { text-align:left; width:25%; }
+#receipt .tot-table td.tr { text-align:right; width:25%; white-space:nowrap; }
+#receipt .net { display:flex; justify-content:space-between; align-items:baseline; font-size:14.5px; font-weight:700; padding:4px 0 2px;}
+#receipt .sig    { font-size:11px; margin-top:14px; }
+#receipt .footer { font-size:9.5px; text-align:right; margin-top:16px; }
+
+@media print{
+  body{background:#fff;padding:0;margin:0;display:block}
+  .form-container,.receipt-label,.receipt-container>.receipt-label{display:none}
+  .receipt-container{display:block;width:100%}
+  #receipt{box-shadow:none;border:none;margin:0;padding:3mm 2mm;width:88mm !important;font-size:10.5px !important;line-height:1.5 !important;}
+  #receipt .hdr { font-size:9.5px !important; }
+  #receipt .bl-title { font-size:12px !important; }
+  #receipt table { font-size:9px !important; }
+  #receipt .tot-table { font-size:9.5px !important; }
+  #receipt .net { font-size:12px !important; }
+  @page{size:80mm auto;margin:0mm;}
+}
+</style>
+</head>
+<body>
+<div class="form-container">
+  <h2>Société</h2>
+  <div class="grid2">
+    <div class="field"><label>Nom société</label><input id="soc" value="SOCIETE TAHA DE DISTRIBUTION SUD"/></div>
+    <div class="field"><label>Adresse</label><input id="adr" value="RUE 02 MAI 1966 MEDNINE"/></div>
+    <div class="field"><label>MF</label><input id="mf" value="MF : 1692189/K/N/M/000"/></div>
+    <div class="field"><label>Tel</label><input id="tel" value="Tel Respl: 98 162 159 / Tel Rosp 2 : 98108424"/></div>
+  </div>
+  <hr class="section-sep"/>
+  <h2>Bon de Livraison</h2>
+  <div class="grid2">
+    <div class="field"><label>N° BL</label><input id="bl" value="Q4309023689"/></div>
+    <div class="field"><label>Date</label><input id="date" value="23/05/2026"/></div>
+  </div>
+  <hr class="section-sep"/>
+  <h2>Client</h2>
+  <div class="grid2">
+    <div class="field"><label>Code - Nom</label><input id="cli" value="180-00437 - 000-SEIF NASER"/></div>
+    <div class="field"><label>Adresse</label><input id="acli" value="GHRABET"/></div>
+    <div class="field"><label>MF client</label><input id="mfcli" value="null"/></div>
+    <div class="field"><label>Transporteur (optionnel)</label><input id="transp" value=""/></div>
+  </div>
+  <hr class="section-sep"/>
+  <h2>Articles — Catalogue Delice</h2>
+  <input class="cat-search" id="cat-search" placeholder="🔍 Rechercher un produit..." oninput="filterCat()"/>
+  <div class="cat-list" id="cat-list"></div>
+  <hr class="section-sep"/>
+  <h2>Articles ajoutés</h2>
+  <table class="lines-table">
+    <thead><tr><th>#</th><th>Article</th><th>Qté</th><th>PU</th><th>Montant</th><th></th></tr></thead>
+    <tbody id="ltbody"></tbody>
+  </table>
+  <hr class="section-sep"/>
+  <h2>Totaux</h2>
+  <div class="totaux">
+    <div class="field"><label>AV (avantage)</label><input id="f_av" type="number" step="0.001" value="4.315" oninput="render()"/></div>
+    <div class="field"><label>Remise &amp; autres</label><input id="f_rem" type="number" step="0.001" value="0.000" oninput="render()"/></div>
+    <div class="field"><label>Frais supplémentaires</label><input id="f_extra" type="number" step="0.001" value="0.000" oninput="render()"/></div>
+  </div>
+  <div class="totaux" style="margin-top:8px">
+    <div class="field"><label>Montant extra (ajouté au TTC)</label><input id="f_eamt" type="number" step="0.001" value="0.000" oninput="render()"/></div>
+  </div>
+  <button class="btn-print" onclick="window.print()">🖨️ IMPRIMER LA FATOURA</button>
+</div>
+
+<div class="receipt-container">
+  <div class="receipt-label">Aperçu de la fatoura ↓</div>
+  <div id="receipt"></div>
+</div>
+
+<script>
+const CATALOGUE = [
+  {n:"LBEN 270 G EAU DE ROSE",p:1.132},{n:"DUP CERISE FRAM GRANOL 260 G",p:1.090},{n:"BT DANAO ANNANS/MENTHE 250",p:1.040},{n:"BLENDY ANANAS PASS QUINOA 120",p:0.990},{n:"MAMZ BANANE 100 GR",p:0.550},{n:"LBEN PROBIOTIQUE 270 GR",p:1.132},{n:"GOUTTA 150 8%",p:2.750},{n:"MILKANA GOUTTA 140 GR",p:2.750},{n:"DELICE CHOCOLAT DUBAI 190",p:1.300},{n:"DUP AUX FRUITS FRAISE 400 GR",p:1.800},{n:"DUP AUX FRUITS VANILLE 400 GR",p:1.800},{n:"DUP MOKTAIL HAWAI BLUE 260 GR",p:1.090},{n:"DUP MOKTAIL ICE FRUITY 260 GR",p:1.090},{n:"DANAO TROPICAL MULTI",p:0.895},{n:"LBEN NATURE BOUTEILLE 420 GR",p:1.432},{n:"LBEN NATURE BOUTEILLE 280 GR",p:1.132},{n:"CREME FRAICHE AFH BT 20",p:2.700},{n:"FROM CARRE 24P ET 4 PROMO",p:9.103},{n:"FROMAGY FILET DE 5 P (100 GR)",p:3.950},
+  {n:"DELICE NATURE100+10",p:0.490},{n:"DELICE VANILLE 100+10",p:0.490},{n:"DELICE FRAISE 100+10",p:0.490},{n:"DELICE BANANE 100+10",p:0.490},{n:"DELICE FDB 100+10",p:0.490},{n:"DELICE POMME/VANILLE 100+10",p:0.490},{n:"DELICE EXOTIQUE 100+10",p:0.490},{n:"Y.NOIX.COCO100+10",p:0.490},{n:"DELICE ABRICOT 100+10",p:0.490},
+  {n:"YOPRO YAB NATURE 300 GR",p:3.580},{n:"YOPRO YAB FRAM BOISE 300 GR",p:3.580},{n:"YOPRO YAB VANILLE BISCUIT 300 GR",p:3.580},{n:"YOPRO LAIT UHT CHOCOLAT 280 GR",p:3.580},{n:"YOPRO LAIT UHT CAFE CARAM 280 GR",p:3.580},
+  {n:"EAU MINERALE DELICE 1.5 L",p:0.634},{n:"EAU MINERALE DELICE 1 L",p:0.600},{n:"EAU MINERALE DELICE 0.5 L",p:0.433},{n:"EAU MINERALE DELICE CUP 250",p:0.210},
+  {n:"DELICE NATURE100",p:0.490},{n:"DELICE VANILLE 100",p:0.490},{n:"DELICE FRAISE 100",p:0.490},{n:"DELICE BANANE 100",p:0.490},{n:"DELICE FDB 100",p:0.490},{n:"DELICE POMME/VANILLE 100",p:0.490},{n:"DELICE EXOTIQUE 100",p:0.490},{n:"Y.NOIX.COCO",p:0.490},{n:"DELICE ABRICOT 100",p:0.490},{n:"DELICE SKYR NATURE 90 GR",p:1.060},{n:"DELICE SKYR FRAISE 90 GR",p:1.060},{n:"DELICE SKYR MANGUE 90 GR",p:1.060},{n:"MPACK*12 DELICE NATURE",p:5.756},{n:"MPA FR/VA",p:5.756},
+  {n:"MIX & GO GRA/CHOCO 140 GR",p:2.220},{n:"DELICE MIX FRAISE 93 GR",p:1.600},
+  {n:"MAMZ VANILLE 70 GR",p:0.380},{n:"MAMZ FRAISE 70 GR",p:0.380},{n:"MAMZ VAN BIS NV",p:0.380},{n:"MAMZ FRAI BISC NV",p:0.380},{n:"MAMZ VANILLE 100 GR",p:0.550},{n:"MAMZ FRAISE 100 GR",p:0.550},{n:"MAMZ FR TROPICAUX 100 GR",p:0.550},{n:"MAMZOUJ VANILLE BISCUIT 100 GR",p:0.550},{n:"MAMZ CITRON VERT 100 GR",p:0.550},
+  {n:"ABR FR150",p:0.650},{n:"ABR PANACHE150",p:0.650},
+  {n:"DELICE MAX VANILLE 330 GR",p:1.600},{n:"DELICE MAX FRAISE 330 GR",p:1.600},{n:"DELICE MAX FRUITS DE BOIS 330 GR",p:1.600},
+  {n:"BLENDY POMME KIWI CHIA 120",p:0.990},{n:"BLENDY POIRE GRAINE DE LIN 120",p:0.990},{n:"BLENDY DATTE FRAMB CER 120",p:0.990},{n:"BLENDY ABR SEC CEREAL 120",p:0.990},
+  {n:"DELICE FR PECHE 95 GR",p:0.750},{n:"DELICE FR CERISE 95 GR",p:0.750},{n:"DELICE FR ANANAS 95 GR",p:0.750},
+  {n:"ACTIVIA FRUITS PECHE 95 GR",p:0.800},
+  {n:"DANINO NAT SUCRE",p:0.505},{n:"DANINO BANANE BSCUIT 80 GR",p:0.880},{n:"MPACK*12 DANINO NATURE SUCRE",p:5.924},
+  {n:"DANETTE ASSIDA PISTACHE 95 GR",p:0.800},{n:"DANETTE LIEGEOIS DUBAI 12 CL",p:0.800},{n:"FLAN DELICE",p:0.710},{n:"DAN LIEGEOIS",p:0.800},{n:"DANETTE CHOCOLAT 95 GR",p:0.700},{n:"DANETTE CARAMEL 95 GR",p:0.700},{n:"DANETTE PRALINE 95 GR",p:0.700},{n:"DANETTE VANILLE 95 GR",p:0.700},{n:"DANETTE CHOCOLAT INTENSE 95 GR",p:0.700},{n:"DANETTE ASSIDET ZOUGOUOU 95 GR",p:0.900},{n:"DANETTE ASSIDA NOISETTE 95 GR",p:0.830},{n:"DANETTE PASSION JASMIN 95 GR",p:0.700},{n:"DANETTE A GLACER VA/CAR/BRAWNI 100",p:0.810},{n:"DANETTE MOUSSE CHOCOLAT 56 GR",p:0.810},{n:"DANETTE DP CHOCO NOIS VAN 100GR",p:0.710},
+  {n:"JOCKEY NS 80 GR",p:0.850},{n:"OIKOS NATURE 100 GR",p:0.850},{n:"OIKOS FRAISE 100 GR",p:0.850},{n:"OIKOS BLENDED VANILLE 100",p:0.850},{n:"OIKOS PECHE/ABRICOT 100 GR",p:0.850},{n:"OIKOS GOURMAND BANOFFEE 100 GR",p:1.050},{n:"OIKOS GOURMAND TARTE AU CITRON 100 GR",p:1.050},
+  {n:"DUP VANILLE 260 GR",p:1.090},{n:"DUP FRAISE 260 GR",p:1.090},{n:"DUP TROPICALE 260 GR",p:1.090},{n:"DUP PECHE MELBA 260 GR",p:1.090},{n:"DUP HIBISCUS BERRY 260 GR",p:1.090},{n:"DUP VA160",p:0.850},{n:"DUP FR160",p:0.850},{n:"DUP TR160",p:0.850},{n:"DUP PM160",p:0.850},{n:"DUP ORANGE BISC",p:0.806},
+  {n:"DANAO PECHE/ABRICOT 200GR",p:0.895},{n:"DANAO FRAISE/BANANE 200GR",p:0.895},{n:"BT DANAO P/ AB 250GR",p:1.040},{n:"BT DANAO MAN/POM/KIWI 250",p:1.040},
+  {n:"FONDU 8 P PROMO",p:2.774},
+  {n:"CHEESLAND 64 P",p:8.806},{n:"MILKANA GOUTTA 140 GR 8%",p:2.750},{n:"MILKANA GOUTTA PROTEINE 150",p:3.150},{n:"FROM CARRE 6P",p:2.848},{n:"FROM CARRE 8P",p:3.641},{n:"FROM CARRE 12P",p:4.949},{n:"FROM CARRE 24P",p:9.103},{n:"FROMAGY 20 GR",p:0.840},{n:"FONDU 8P NV",p:2.979},{n:"FONDU 16P NV",p:5.631},{n:"FONDU 32P",p:8.775},{n:"FONDU 24P NV",p:7.585},{n:"FONDU 48P NV",p:13.904},{n:"RAPE CHEESY1 KG",p:9.915},{n:"RAPE GRUYE PF 110 G",p:3.933},{n:"RAPE GRUYE 500 GR",p:15.142},{n:"RAPE EMMENTAL 1 KG",p:28.741},{n:"KIDZ",p:0.900},{n:"MILKANA GOUTTA 210 GR",p:3.769},{n:"MILKANA GOUTTA 310 GR",p:5.267},{n:"MILKANA GOUTTA 2 KG",p:32.000},{n:"FROM TARFRAI 120",p:2.525},{n:"FROMMAGE ST MORET 130 GR",p:4.393},{n:"FROM TARFRAI 240",p:4.556},{n:"FROMAGE TARTARE 130 GR",p:4.393},{n:"FROMAGE MASCARPONE 150 GR",p:6.550},{n:"COEUR D C",p:1.746},{n:"FROMAGY FILET DE 6 P",p:4.200},
+  {n:"LBEN NATURE BOUTEILLE 400 GR",p:1.432},{n:"LBEN NATURE BOUTEILLE 270 GR",p:1.132},{n:"LBEN 420 GR",p:1.490},{n:"KEFIR NATURE 270 GR",p:1.144},{n:"KEFIR MANGUE 270 GR",p:1.144},{n:"LBEN SLIM 420 GR",p:1.490},{n:"RAIEB 420 GR",p:1.490},{n:"LBEN PLAISIR EAU DE ROSE 270",p:1.144},{n:"LBEN PLAISIR LOUKPISTACH 270",p:1.144},
+  {n:"LAIT UHT",p:1.326},{n:"LAIT DELACTOSE",p:2.450},{n:"LAIT REGENERE BARISTA",p:2.220},{n:"LAIT UHT PAQUET SLIM",p:1.326},{n:"L.ENTIER",p:2.450},{n:"L.ECREME",p:2.200},{n:"DELISSO1L",p:2.200},{n:"LAIT DEMI ECREME BT 1L",p:1.326},
+  {n:"LAIT AROM WAKE UP 450 GR",p:1.340},{n:"LAIT AROM WAKE UP 420 GR",p:1.390},{n:"LAIT AROM WAKE UP VAN 450 GR",p:1.390},{n:"DELISSO CHOCOLAT 200ML",p:0.810},{n:"DELISSO PRO KIDS 200ML",p:1.150},{n:"DELISSO VANILLE 200ML",p:0.810},{n:"DELISSO BANANE 200ML",p:0.810},{n:"DELISSO FRAISE 200 ML",p:0.810},{n:"DELISSO CHOCOLAT 100ML",p:0.465},{n:"DELISSO FRAISE 10CL",p:0.465},
+  {n:"MILKSHAKE CHOCOLAT 190 GR",p:1.004},{n:"MILKSHAKE VANILLE 190 GR",p:1.004},{n:"MILKSHAKE BANANE 190 GR",p:1.004},{n:"MILKSHAKE NOSETTE 190 GR",p:1.004},{n:"MILKSHAKE MANGUE 190 GR",p:1.004},{n:"CHOCOLAT BLANC PISTACHE 190",p:1.300},
+  {n:"BEURRE200",p:32.500},{n:"BEURRE VR",p:32.000},{n:"CREME UHT DELICE",p:13.160},{n:"CREME FRAICHE SPECIALITE BT 1 L",p:9.890},{n:"CREME FRAICHE BOUTEILLE 20CL",p:2.700},{n:"CREME CHANTILLY BOUTEILLE 450GR",p:4.357},{n:"CREME FRAICHE LEGERE BT 20",p:2.700},{n:"CREME FRAICHE SPECIALITE BT 20",p:2.095},{n:"CREME FRAICHE 145",p:2.200},{n:"CREME FRAICHE TOP CHEF 14,5",p:1.650},{n:"C RFRAICHE LA DOSETTE",p:0.870},
+  {n:"DELI'O MENTHE 1L",p:1.916},{n:"DELI'O POIRE 25CL",p:0.812},{n:"DELI'O ANANAS 25CL",p:0.812},{n:"DELI'O MENTHE 25CL",p:0.812},{n:"DELI'O FRAISE 25CL",p:0.812},{n:"DELI'O POM 25CL",p:0.812},{n:"DELI'O PECHE 25CL",p:0.812},
+  {n:"PUNCH PULPE 0,3L",p:1.235},{n:"PUNCH MOJITO 0,3L",p:1.235},{n:"PUNCH PULPE 0,5",p:1.464},{n:"PUNCH PULPE 1L",p:2.400},{n:"PUNCH PULPE 1,5",p:3.000},{n:"PUNCH CIDRE0,3L",p:1.046},{n:"PUNCH ORANGE 0,3L",p:1.046},{n:"PUNCH POMME 0,3L",p:1.046},{n:"PUNCH ANANAS 1,5 L",p:3.000},{n:"PUNCH CIDRE 1L",p:2.195},{n:"PUNCH CIDRE1,5L",p:2.718},
+  {n:"JUS POMME VERTE 75 CL",p:2.606},{n:"JUS COCKTAIL RELAX 75 CL",p:2.606},{n:"JUS DATTES BANANES 75 CL",p:2.606},{n:"J.MULTI1L",p:2.989},{n:"JUS ANANAS 1 L",p:2.989},{n:"J.MOJITO1L",p:2.989},{n:"JUS RAISIN 1L",p:2.989},{n:"J.MANGUE1",p:2.989},{n:"J.ORANGE1",p:2.989},{n:"JUS POMME 1L",p:2.989},{n:"Ora 20CL",p:0.779},{n:"Multi20CL",p:0.779},{n:"JUS MANGUE PF 20 CL",p:0.779},{n:"JUS ANANAS PF 20 CL",p:0.779},{n:"JUS POIRE PF 20 CL",p:0.779},
+];
+
+let lines = [];
+
+function fmt(v){return v.toFixed(3).replace('.',',');}
+function fmtP(v){return v.toFixed(4).replace('.',',');}
+function g(id){return document.getElementById(id);}
+function gv(id){return g(id).value;}
+
+// ===== CATALOGUE =====
+function filterCat(){
+  let q = g('cat-search').value.toLowerCase();
+  renderCat(q);
+}
+
+function renderCat(q=''){
+  let filtered = q ? CATALOGUE.filter(p=>p.n.toLowerCase().includes(q)) : CATALOGUE;
+  g('cat-list').innerHTML = filtered.map((p,i)=>`
+    <div class="cat-item">
+      <span class="cat-nm">${p.n}</span>
+      <span class="cat-px">${p.p.toFixed(3)}</span>
+      <input class="cat-qty" type="number" min="1" value="1" id="qty_${i}" style="width:55px"/>
+      <button class="cat-btn" onclick="addFromCat('${p.n.replace(/'/g,"\\'")}',${p.p},${i})">+ Ajouter</button>
+    </div>`).join('');
+}
+
+function addFromCat(name, price, idx){
+  let qtyEl = document.getElementById('qty_'+idx);
+  let q = parseFloat(qtyEl ? qtyEl.value : 1) || 1;
+  // Check if already exists — update qty
+  let existing = lines.find(l=>l.n===name);
+  if(existing){ existing.q += q; }
+  else { lines.push({n:name, q:q, p:price}); }
+  renderTable();
+  render();
+}
+
+// ===== LINES TABLE =====
+function renderTable(){
+  g('ltbody').innerHTML = lines.map((l,i)=>`
+    <tr>
+      <td>${i+1}</td><td>${l.n}</td>
+      <td style="text-align:right">${l.q}</td>
+      <td style="text-align:right">${l.p.toFixed(4)}</td>
+      <td style="text-align:right">${fmt(l.q*l.p)}</td>
+      <td style="text-align:center"><button class="del" onclick="delLine(${i})">✕</button></td>
+    </tr>`).join('');
+}
+
+function delLine(i){lines.splice(i,1);renderTable();render();}
+
+// ===== RENDER RECEIPT =====
+function render(){
+  if(!lines.length){
+    g('receipt').innerHTML='<div style="text-align:center;padding:20px;color:#999;font-family:Arial">Ajoutez des articles...</div>';
+    return;
+  }
+  let totalTTC=lines.reduce((s,l)=>s+l.q*l.p,0);
+  let av=parseFloat(g('f_av').value)||0;
+  let rem=parseFloat(g('f_rem').value)||0;
+  let extra=parseFloat(g('f_extra').value)||0;
+  let eamt=parseFloat(g('f_eamt').value)||0;
+  let netTTC=totalTTC+eamt;
+  let net=netTTC+extra+av-rem;
+
+  let rows=lines.map((l,i)=>{
+    let nm=l.n.length>22?l.n.substring(0,22):l.n;
+    return `<tr>
+      <td class="l">[${i+1}]</td>
+      <td class="l">${nm}</td>
+      <td>${l.q}</td>
+      <td>0</td>
+      <td>${fmtP(l.p)}</td>
+      <td>${fmt(l.q*l.p)}</td>
+    </tr>`;
+  }).join('');
+
+  let now=new Date();
+  let hm=now.toTimeString().substring(0,5);
+  let dd=String(now.getDate()).padStart(2,'0');
+  let mo=String(now.getMonth()+1).padStart(2,'0');
+  let yy=now.getFullYear();
+  let ts=`${dd}/${mo}/${yy} ${hm}`;
+
+  let extraRow=extra>0?`<tr><td></td><td class="tl">Frais sup.</td><td class="tr">${fmt(extra)}</td></tr>`:'';
+  let transp=gv('transp')?`<div>Transp.: ${gv('transp')}</div>`:'';
+
+  g('receipt').innerHTML=`
+<div class="hdr">
+  <div class="hdr-name">${gv('soc')}</div>
+  <div>${gv('adr')}</div>
+  <div>${gv('mf')}</div>
+  <div>${gv('tel')}</div>
+</div>
+<br>
+<div class="bl-title">
+  <div style="font-size:18px;">Bon de livraison : ${gv('bl')}</div>
+  <div style="font-size:18px;">Du : ${gv('date')}</div>
+</div>
+<br>
+<div class="b ul">CLIENT</div>
+<div>${gv('cli')}</div>
+<div>Adresse : ${gv('acli')} &nbsp; | &nbsp; MF: ${gv('mfcli')}</div>
+${transp}
+<br>
+<table>
+<colgroup><col/><col/><col/><col/><col/><col/></colgroup>
+<thead>
+<tr>
+  <th class="l" colspan="2">Article</th>
+  <th>Qte</th><th>CAS</th><th>PU</th><th>Montant</th>
+</tr>
+</thead>
+<tbody>${rows}</tbody>
+</table>
+<br>
+<div class="tot-wrap">
+  <table class="tot-table">
+    <tr>
+      <td class="tl">Nombre de lignes: ${lines.length}</td>
+      <td class="tl">Total TTC</td>
+      <td class="tr">${fmt(netTTC)}</td>
+    </tr>
+    <tr><td></td><td class="tl">AV</td><td class="tr">${fmt(av)}</td></tr>
+    ${extraRow}
+    <tr><td></td><td class="tl">Remise &amp; autres</td><td class="tr">${fmt(rem)}</td></tr>
+  </table>
+</div>
+<div class="solid2" style="margin-top:6px"></div>
+<table class="tot-table">
+  <tr>
+    <td></td>
+    <td class="tl" style="font-size:12px;font-weight:700;">NET A PAYER</td>
+    <td class="tr" style="font-size:12px;font-weight:700;">${fmt(net)}</td>
+  </tr>
+</table>
+<div class="sig">Signature client</div>
+<div class="footer">Imprime le ${ts}</div>`;
+}
+
+['soc','adr','mf','tel','bl','date','cli','acli','mfcli','transp'].forEach(id=>{
+  g(id).addEventListener('input',render);
+});
+
+renderCat();
+render();
+</script>
+</body>
+</html>

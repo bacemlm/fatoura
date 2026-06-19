@@ -135,14 +135,14 @@ h1{font-size:16px;color:#333}
   <hr class="section-sep"/>
   <h2>Totaux</h2>
   <div class="totaux">
-    <div class="field"><label>AV (avantage)</label><input id="f_av" type="number" step="0.001" value="4.315" oninput="render()"/></div>
+    <div class="field"><label>AV (1% sans lait — auto)</label><input id="f_av" type="number" step="0.001" value="0.000" readonly style="background:#f5f5f5;color:#555;cursor:not-allowed"/></div>
     <div class="field"><label>Remise &amp; autres</label><input id="f_rem" type="number" step="0.001" value="0.000" oninput="render()"/></div>
     <div class="field"><label>Frais supplémentaires</label><input id="f_extra" type="number" step="0.001" value="0.000" oninput="render()"/></div>
   </div>
   <div class="totaux" style="margin-top:8px">
     <div class="field"><label>Montant extra (ajouté au TTC)</label><input id="f_eamt" type="number" step="0.001" value="0.000" oninput="render()"/></div>
   </div>
-  <button class="btn-print" onclick="window.print()">🖨️ IMPRIMER LA FATOURA</button>
+  <button class="btn-print" onclick="doPrint()">🖨️ IMPRIMER LA FATOURA</button>
 </div>
 
 <div class="receipt-container">
@@ -237,7 +237,15 @@ function render(){
     return;
   }
   let totalTTC=lines.reduce((s,l)=>s+l.q*l.p,0);
-  let av=parseFloat(g('f_av').value)||0;
+  // AV = 1% of total excluding LAIT UHT products only
+  let totalSansLait = lines
+    .filter(l => {
+      let nm = l.n.toUpperCase();
+      return !(nm.includes('LAIT') && nm.includes('UHT'));
+    })
+    .reduce((s,l) => s + l.q*l.p, 0);
+  let av = Math.round(totalSansLait * 0.01 * 1000) / 1000;
+  g('f_av').value = av.toFixed(3);
   let rem=parseFloat(g('f_rem').value)||0;
   let extra=parseFloat(g('f_extra').value)||0;
   let eamt=parseFloat(g('f_eamt').value)||0;
@@ -317,6 +325,14 @@ ${transp}
 </table>
 <div class="sig">Signature client</div>
 <div class="footer">Imprime le ${ts}</div>`;
+}
+
+function doPrint(){
+  if(typeof AndroidPrint !== 'undefined'){
+    AndroidPrint.print();
+  } else {
+    window.print();
+  }
 }
 
 ['soc','adr','mf','tel','bl','date','cli','acli','mfcli','transp'].forEach(id=>{
